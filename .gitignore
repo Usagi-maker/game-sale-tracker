@@ -1,0 +1,5 @@
+.env
+venv/
+__pycache__/
+gcp-key.json
+output/*.csv
