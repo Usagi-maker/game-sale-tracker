@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from google.cloud import bigquery
 
 DEALS_URL = "https://api.isthereanydeal.com/deals/v2"
-MAX_DEALS = 20
+MAX_DEALS = 100
 OUTPUT_DIR = "output"
 
 
@@ -19,7 +19,7 @@ def fetch_deals(api_key: str) -> list[dict]:
         DEALS_URL,
         headers={"ITAD-API-Key": api_key},
         params={
-            "country": "US",
+            "country": "JP",
             "limit": MAX_DEALS,
         },
     )
@@ -31,12 +31,18 @@ def build_rows(deals: list[dict], fetched_at: str) -> list[dict]:
     rows = []
     for item in deals:
         deal = item.get("deal", {})
+        regular_price = deal.get("regular", {}).get("amount")
+        sale_price = deal.get("price", {}).get("amount")
+
+        if regular_price is None or sale_price is None:
+            continue
+
         rows.append(
             {
                 "title": item.get("title", ""),
                 "shop": deal.get("shop", {}).get("name", ""),
-                "regular_price": deal.get("regular", {}).get("amount"),
-                "sale_price": deal.get("price", {}).get("amount"),
+                "regular_price": regular_price,
+                "sale_price": sale_price,
                 "cut": deal.get("cut"),
                 "fetched_at": fetched_at,
             }
