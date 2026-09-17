@@ -20,22 +20,23 @@ templates = Jinja2Templates(directory="templates")
 
 
 def fetch_latest_sales() -> tuple[list[dict], date | None]:
-    """salesテーブルから最新日付のデータを割引率の高い順に取得する。
-
-    サービスアカウントにbigquery.jobs.create権限がないため、SQLクエリではなく
-    tabledata.list (list_rows) で全件取得し、Python側で最新日抽出・ソートを行う。
-    """
+    """salesテーブルから最新日付のデータを割引率の高い順に最大MAX_ROWS件取得する。"""
     client = bigquery.Client(project=PROJECT_ID)
     table_ref = f"{PROJECT_ID}.{DATASET}.{SALES_TABLE}"
-    rows = list(client.list_rows(table_ref))
+
+    query = f"""
+        SELECT game_title, store_name, regular_price, sale_price, discount_pct, fetched_at
+        FROM `{table_ref}`
+        WHERE DATE(fetched_at) = (SELECT MAX(DATE(fetched_at)) FROM `{table_ref}`)
+        ORDER BY discount_pct DESC
+        LIMIT {MAX_ROWS}
+    """
+    rows = list(client.query(query).result())
 
     if not rows:
         return [], None
 
-    latest_date = max(row["fetched_at"].date() for row in rows)
-    latest_rows = [row for row in rows if row["fetched_at"].date() == latest_date]
-    latest_rows.sort(key=lambda row: row["discount_pct"] or 0, reverse=True)
-
+    latest_date = rows[0]["fetched_at"].date()
     sales = [
         {
             "game_title": row["game_title"],
@@ -44,7 +45,7 @@ def fetch_latest_sales() -> tuple[list[dict], date | None]:
             "sale_price": row["sale_price"],
             "discount_pct": row["discount_pct"],
         }
-        for row in latest_rows[:MAX_ROWS]
+        for row in rows
     ]
     return sales, latest_date
 
