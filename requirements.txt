@@ -1,3 +1,6 @@
 httpx
 python-dotenv
 google-cloud-bigquery
+fastapi
+uvicorn
+jinja2

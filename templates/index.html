@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Game Sale Tracker</title>
+    <style>
+        body {
+            font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+            background-color: #f5f6fa;
+            color: #2f3640;
+            margin: 0;
+            padding: 2rem;
+        }
+        h1 {
+            margin-bottom: 0.25rem;
+        }
+        .subtitle {
+            color: #636e72;
+            margin-bottom: 1.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #dfe4ea;
+        }
+        th {
+            background-color: #2f3640;
+            color: #ffffff;
+        }
+        tr:hover {
+            background-color: #f1f2f6;
+        }
+        .price {
+            text-align: right;
+            white-space: nowrap;
+        }
+        .discount {
+            text-align: right;
+            font-weight: bold;
+            color: #e84118;
+        }
+        .empty {
+            color: #636e72;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Sale Tracker</h1>
+    {% if latest_date %}
+        <p class="subtitle">{{ latest_date }}のセール情報</p>
+    {% else %}
+        <p class="subtitle empty">セール情報が見つかりませんでした。</p>
+    {% endif %}
+
+    {% if sales %}
+    <table>
+        <thead>
+            <tr>
+                <th>ゲーム名</th>
+                <th>ストア名</th>
+                <th>通常価格</th>
+                <th>セール価格</th>
+                <th>割引率</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.game_title }}</td>
+                <td>{{ sale.store_name }}</td>
+                <td class="price">&yen;{{ "{:,.0f}".format(sale.regular_price) }}</td>
+                <td class="price">&yen;{{ "{:,.0f}".format(sale.sale_price) }}</td>
+                <td class="discount">{{ sale.discount_pct }}%</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</body>
+</html>
