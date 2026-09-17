@@ -35,3 +35,6 @@ jobs:
 
       - name: Run fetch_sales.py
         run: python fetch_sales.py
+
+      - name: Run fetch_steam_stats.py
+        run: python fetch_steam_stats.py
