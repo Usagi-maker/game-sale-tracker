@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Game Sale Tracker</title>
+    <title>ストア統計 - Game Sale Tracker</title>
     <style>
         body {
             font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
@@ -36,7 +36,7 @@
         tr:hover {
             background-color: #f1f2f6;
         }
-        .price {
+        .number {
             text-align: right;
             white-space: nowrap;
         }
@@ -48,64 +48,48 @@
         .empty {
             color: #636e72;
         }
-        nav {
-            margin-bottom: 1rem;
-        }
-        nav a {
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
             color: #2f3640;
             text-decoration: none;
             font-weight: bold;
         }
-        nav a:hover {
-            text-decoration: underline;
-        }
-        a.game-link {
-            color: #2f3640;
-            text-decoration: none;
-        }
-        a.game-link:hover {
+        .back-link:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <nav><a href="/stores">ストア統計</a></nav>
-    <h1>Game Sale Tracker</h1>
-    {% if latest_date %}
-        <p class="subtitle">{{ latest_date }}のセール情報</p>
-    {% else %}
-        <p class="subtitle empty">セール情報が見つかりませんでした。</p>
-    {% endif %}
+    <a class="back-link" href="/">&larr; トップページへ戻る</a>
+    <h1>ストア統計</h1>
+    <p class="subtitle">ストアごとのセール傾向</p>
 
-    {% if sales %}
+    {% if store_stats %}
     <table>
         <thead>
             <tr>
-                <th>ゲーム名</th>
                 <th>ストア名</th>
-                <th>通常価格</th>
-                <th>セール価格</th>
-                <th>割引率</th>
+                <th>追跡日数</th>
+                <th>総セール数</th>
+                <th>平均割引率</th>
+                <th>最大割引率</th>
             </tr>
         </thead>
         <tbody>
-            {% for sale in sales %}
+            {% for store in store_stats %}
             <tr>
-                <td>
-                    {% if sale.game_id %}
-                    <a class="game-link" href="/games/{{ sale.game_id }}">{{ sale.game_title }}</a>
-                    {% else %}
-                    {{ sale.game_title }}
-                    {% endif %}
-                </td>
-                <td>{{ sale.store_name }}</td>
-                <td class="price">&yen;{{ "{:,.0f}".format(sale.regular_price) }}</td>
-                <td class="price">&yen;{{ "{:,.0f}".format(sale.sale_price) }}</td>
-                <td class="discount">{{ sale.discount_pct }}%</td>
+                <td>{{ store.store_name }}</td>
+                <td class="number">{{ store.days_tracked }}</td>
+                <td class="number">{{ store.total_deals }}</td>
+                <td class="discount">{{ store.avg_discount }}%</td>
+                <td class="discount">{{ store.max_discount }}%</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+    <p class="empty">ストア情報が見つかりませんでした。</p>
     {% endif %}
 </body>
 </html>

@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Game Sale Tracker</title>
+    <title>{{ game_title }} - Game Sale Tracker</title>
     <style>
         body {
             font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
@@ -48,40 +48,28 @@
         .empty {
             color: #636e72;
         }
-        nav {
-            margin-bottom: 1rem;
-        }
-        nav a {
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
             color: #2f3640;
             text-decoration: none;
             font-weight: bold;
         }
-        nav a:hover {
-            text-decoration: underline;
-        }
-        a.game-link {
-            color: #2f3640;
-            text-decoration: none;
-        }
-        a.game-link:hover {
+        .back-link:hover {
             text-decoration: underline;
         }
     </style>
 </head>
 <body>
-    <nav><a href="/stores">ストア統計</a></nav>
-    <h1>Game Sale Tracker</h1>
-    {% if latest_date %}
-        <p class="subtitle">{{ latest_date }}のセール情報</p>
-    {% else %}
-        <p class="subtitle empty">セール情報が見つかりませんでした。</p>
-    {% endif %}
+    <a class="back-link" href="/">&larr; トップページへ戻る</a>
+    <h1>{{ game_title }}</h1>
+    <p class="subtitle">セール履歴</p>
 
-    {% if sales %}
+    {% if history %}
     <table>
         <thead>
             <tr>
-                <th>ゲーム名</th>
+                <th>日付</th>
                 <th>ストア名</th>
                 <th>通常価格</th>
                 <th>セール価格</th>
@@ -89,23 +77,19 @@
             </tr>
         </thead>
         <tbody>
-            {% for sale in sales %}
+            {% for row in history %}
             <tr>
-                <td>
-                    {% if sale.game_id %}
-                    <a class="game-link" href="/games/{{ sale.game_id }}">{{ sale.game_title }}</a>
-                    {% else %}
-                    {{ sale.game_title }}
-                    {% endif %}
-                </td>
-                <td>{{ sale.store_name }}</td>
-                <td class="price">&yen;{{ "{:,.0f}".format(sale.regular_price) }}</td>
-                <td class="price">&yen;{{ "{:,.0f}".format(sale.sale_price) }}</td>
-                <td class="discount">{{ sale.discount_pct }}%</td>
+                <td>{{ row.date }}</td>
+                <td>{{ row.store_name }}</td>
+                <td class="price">&yen;{{ "{:,.0f}".format(row.regular_price) }}</td>
+                <td class="price">&yen;{{ "{:,.0f}".format(row.sale_price) }}</td>
+                <td class="discount">{{ row.discount_pct }}%</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+    <p class="empty">セール履歴が見つかりませんでした。</p>
     {% endif %}
 </body>
 </html>
