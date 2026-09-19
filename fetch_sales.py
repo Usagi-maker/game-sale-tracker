@@ -39,6 +39,7 @@ def build_rows(deals: list[dict], fetched_at: str) -> list[dict]:
 
         rows.append(
             {
+                "game_id": item.get("id", ""),
                 "title": item.get("title", ""),
                 "shop": deal.get("shop", {}).get("name", ""),
                 "regular_price": regular_price,
@@ -57,11 +58,12 @@ def write_csv(rows: list[dict]) -> str:
     with open(filename, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ["ゲーム名", "ストア名", "通常価格", "セール価格", "割引率(%)", "取得日時"]
+            ["ゲームID", "ゲーム名", "ストア名", "通常価格", "セール価格", "割引率(%)", "取得日時"]
         )
         for row in rows:
             writer.writerow(
                 [
+                    row["game_id"],
                     row["title"],
                     row["shop"],
                     row["regular_price"],
@@ -80,6 +82,7 @@ def write_bigquery(rows: list[dict], project_id: str, dataset: str, table: str) 
 
     bq_rows = [
         {
+            "game_id": row["game_id"],
             "game_title": row["title"],
             "store_name": row["shop"],
             "regular_price": row["regular_price"],

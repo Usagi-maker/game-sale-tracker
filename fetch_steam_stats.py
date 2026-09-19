@@ -49,8 +49,8 @@ def fetch_steam_appid(itad_id: str, api_key: str) -> tuple[int | None, str | Non
 
 
 def extract_steam_games(deals: list[dict], api_key: str) -> list[dict]:
-    """dealsからSteam App IDとゲームタイトルを抽出する（ゲーム本体のみ、重複除去）。"""
-    games: dict[int, str] = {}
+    """dealsからSteam App ID・ITADゲームID・ゲームタイトルを抽出する（ゲーム本体のみ、重複除去）。"""
+    games: dict[int, dict] = {}
     for item in deals:
         if item.get("type") != "game":
             continue
@@ -58,9 +58,12 @@ def extract_steam_games(deals: list[dict], api_key: str) -> list[dict]:
         appid, title = fetch_steam_appid(item["id"], api_key)
         if appid is None or appid in games:
             continue
-        games[appid] = title or item.get("title", "")
+        games[appid] = {"game_id": item["id"], "title": title or item.get("title", "")}
 
-    return [{"appid": appid, "title": title} for appid, title in games.items()]
+    return [
+        {"appid": appid, "game_id": info["game_id"], "title": info["title"]}
+        for appid, info in games.items()
+    ]
 
 
 def fetch_player_count(appid: int) -> int | None:
@@ -137,6 +140,7 @@ def build_rows(games: list[dict], fetched_at: str) -> list[dict]:
 
         rows.append(
             {
+                "game_id": game["game_id"],
                 "steam_app_id": appid,
                 "game_title": game_title,
                 "player_count": player_count,
