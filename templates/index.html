@@ -2,224 +2,404 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Game Sale Tracker</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap">
     <style>
+        :root {
+            --bg: #0b0b10;
+            --surface: #141420;
+            --surface-hover: #1c1c2e;
+            --border: rgba(255,255,255,0.07);
+            --accent: #7c5af7;
+            --accent-glow: rgba(124,90,247,0.25);
+            --accent-dim: rgba(124,90,247,0.15);
+            --deal: #ff4455;
+            --deal-dim: rgba(255,68,85,0.15);
+            --text: #e2e2f0;
+            --muted: #6b6b85;
+            --tag-game: rgba(52,211,153,0.15);
+            --tag-game-text: #34d399;
+            --tag-dlc: rgba(251,191,36,0.15);
+            --tag-dlc-text: #fbbf24;
+            --tag-ost: rgba(167,139,250,0.15);
+            --tag-ost-text: #a78bfa;
+            color-scheme: dark;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
-            background-color: #f5f6fa;
-            color: #2f3640;
-            margin: 0;
-            padding: 2rem;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
         }
-        h1 {
-            margin-bottom: 0.25rem;
+
+        .header {
+            position: sticky;
+            top: env(safe-area-inset-top, 0px);
+            z-index: 100;
+            background: rgba(11,11,16,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
         }
-        .subtitle {
-            color: #636e72;
-            margin-bottom: 1.5rem;
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            height: 60px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: #ffffff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        th, td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid #dfe4ea;
-        }
-        th {
-            background-color: #2f3640;
-            color: #ffffff;
-        }
-        tr:hover {
-            background-color: #f1f2f6;
-        }
-        .price {
-            text-align: right;
+        .logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: 0.05em;
+            color: var(--text);
+            text-decoration: none;
             white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .discount {
-            text-align: right;
-            font-weight: bold;
-            color: #e84118;
+        .logo-dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent);
         }
-        .empty {
-            color: #636e72;
-        }
-        nav {
-            margin-bottom: 1rem;
-        }
-        nav a {
-            color: #2f3640;
+        .nav { display: flex; gap: 4px; margin-left: auto; }
+        .nav a {
+            color: var(--muted);
             text-decoration: none;
-            font-weight: bold;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: color 0.15s, background 0.15s;
         }
-        nav a:hover {
-            text-decoration: underline;
+        .nav a:hover { color: var(--text); background: var(--border); }
+        .nav a.active { color: var(--text); }
+
+        .main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
         }
-        a.game-link {
-            color: #2f3640;
-            text-decoration: none;
+        .page-head { margin-bottom: 24px; }
+        .page-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 28px;
+            letter-spacing: 0.02em;
+            margin-bottom: 4px;
         }
-        a.game-link:hover {
-            text-decoration: underline;
+        .page-sub { color: var(--muted); font-size: 13px; }
+
+        .date-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(124,90,247,0.2);
+            color: var(--accent);
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 20px;
         }
+        .date-dot {
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
         .filters {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: 8px;
             flex-wrap: wrap;
+            margin-bottom: 28px;
         }
-        .filters a {
-            padding: 0.4rem 1rem;
-            border: 1px solid #2f3640;
-            border-radius: 999px;
-            color: #2f3640;
+        .filter-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 7px 16px;
+            border-radius: 8px;
+            cursor: pointer;
             text-decoration: none;
-            background-color: #ffffff;
+            transition: all 0.15s;
         }
-        .filters a.active {
-            background-color: #2f3640;
-            color: #ffffff;
+        .filter-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+        .filter-btn.active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--text);
         }
-        .cover, .cover-placeholder {
-            width: 160px;
-            aspect-ratio: 8 / 3;
-            border-radius: 3px;
-            display: block;
-            background-color: #2f3640;
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
         }
-        .cover {
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            position: relative;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,90,247,0.3);
+            border-color: rgba(124,90,247,0.4);
+        }
+        .discount-badge {
+            position: absolute;
+            top: 10px; right: 10px;
+            background: var(--deal);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.02em;
+            z-index: 2;
+        }
+        .card-cover {
+            width: 100%;
+            aspect-ratio: 400/150;
             object-fit: contain;
+            background: #1a1a2a;
+            display: block;
         }
-        .cover-placeholder {
-            color: #b2bec3;
-            font-size: 0.75rem;
-            text-align: center;
+        .card-cover-placeholder {
+            width: 100%;
+            aspect-ratio: 400/150;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--muted);
+            font-size: 12px;
         }
-        .badge {
-            display: inline-block;
-            padding: 0.1rem 0.5rem;
-            border-radius: 3px;
-            font-size: 0.75rem;
-            color: #ffffff;
-            background-color: #7f8fa6;
-            margin-left: 0.5rem;
-            vertical-align: middle;
+        .card-body {
+            padding: 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
-        .badge-game { background-color: #44bd32; }
-        .badge-dlc { background-color: #e1b12c; }
-        .badge-soundtrack { background-color: #8c7ae6; }
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .card-title { font-weight: 600; font-size: 14px; line-height: 1.3; flex: 1; }
+        .card-tag {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 4px;
+            white-space: nowrap;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .tag-game { background: var(--tag-game); color: var(--tag-game-text); }
+        .tag-dlc  { background: var(--tag-dlc);  color: var(--tag-dlc-text); }
+        .tag-ost  { background: var(--tag-ost);  color: var(--tag-ost-text); }
+        .card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+        }
+        .prices { display: flex; align-items: baseline; gap: 8px; }
+        .price-sale {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+        .price-regular {
+            font-size: 12px;
+            color: var(--muted);
+            text-decoration: line-through;
+            font-variant-numeric: tabular-nums;
+        }
+        .store-name {
+            font-size: 11px;
+            color: var(--muted);
+            background: rgba(255,255,255,0.05);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+        .card-links { display: flex; align-items: center; gap: 12px; }
+        .btn-store {
+            font-size: 11px;
+            color: var(--text);
+            text-decoration: none;
+            background: var(--accent-dim);
+            border: 1px solid rgba(124,90,247,0.3);
+            padding: 4px 10px;
+            border-radius: 5px;
+            transition: background 0.15s;
+        }
+        .btn-store:hover { background: var(--accent-glow); }
+        .history-link {
+            font-size: 11px;
+            color: var(--accent);
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.15s;
+        }
+        .history-link:hover { opacity: 1; }
+
+        .empty { color: var(--muted); }
+
         .pagination {
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 40px;
         }
-        .pagination a, .pagination .disabled {
-            padding: 0.4rem 1rem;
-            border: 1px solid #2f3640;
-            border-radius: 4px;
+        .page-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            padding: 8px 20px;
+            border-radius: 8px;
             text-decoration: none;
+            transition: all 0.15s;
+            display: inline-block;
         }
-        .pagination a {
-            color: #2f3640;
-            background-color: #ffffff;
-        }
-        .pagination a:hover {
-            background-color: #2f3640;
-            color: #ffffff;
-        }
-        .pagination .disabled {
-            color: #b2bec3;
-            border-color: #dfe4ea;
-            cursor: not-allowed;
-        }
-        .history-link {
-            font-size: 0.8rem;
-            color: #636e72;
-            margin-left: 0.5rem;
+        .page-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .page-btn.disabled { opacity: 0.3; cursor: default; pointer-events: none; }
+        .page-info { color: var(--muted); font-size: 13px; }
+
+        @media (max-width: 600px) {
+            .header-inner { gap: 16px; }
+            .nav { display: none; }
+            .cards { grid-template-columns: 1fr; }
+            .main { padding: 20px 16px; }
         }
     </style>
 </head>
 <body>
-    <nav><a href="/stores">ストア統計</a></nav>
-    <h1>Game Sale Tracker</h1>
-    {% if latest_date %}
-        <p class="subtitle">{{ latest_date }}のセール情報</p>
-    {% else %}
-        <p class="subtitle empty">セール情報が見つかりませんでした。</p>
-    {% endif %}
+    <header class="header">
+        <div class="header-inner">
+            <a href="/" class="logo">
+                <span class="logo-dot"></span>
+                SALE TRACKER
+            </a>
+            <nav class="nav">
+                <a href="/" class="active">今日のセール</a>
+                <a href="/stores">ストア統計</a>
+            </nav>
+        </div>
+    </header>
 
-    <div class="filters">
-        {% for key, label in type_filters.items() %}
-        <a href="/?type={{ key }}" class="{{ 'active' if key == current_type else '' }}">{{ label }}</a>
-        {% endfor %}
-    </div>
+    <main class="main">
+        <div class="page-head">
+            <h1 class="page-title">Game Sale Tracker</h1>
+            {% if latest_date %}
+            <p class="page-sub">{{ latest_date }}のセール情報</p>
+            {% else %}
+            <p class="page-sub">セール情報が見つかりませんでした。</p>
+            {% endif %}
+        </div>
 
-    {% if sales %}
-    <table>
-        <thead>
-            <tr>
-                <th>画像</th>
-                <th>ゲーム名</th>
-                <th>ストア名</th>
-                <th>通常価格</th>
-                <th>セール価格</th>
-                <th>割引率</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for sale in sales %}
-            <tr>
-                <td>
-                    {% if sale.image_url %}
-                    <img class="cover" src="{{ sale.image_url }}" alt="{{ sale.game_title }}" loading="lazy">
-                    {% else %}
-                    <div class="cover-placeholder">No Image</div>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if sale.store_url %}
-                    <a class="game-link" href="{{ sale.store_url }}" target="_blank" rel="noopener noreferrer">{{ sale.game_title }}</a>
-                    {% else %}
-                    {{ sale.game_title }}
-                    {% endif %}
-                    {% if sale.game_type %}
-                    <span class="badge badge-{{ sale.game_type }}">{{ type_filters.get(sale.game_type, sale.game_type) }}</span>
-                    {% endif %}
-                    {% if sale.game_id %}
-                    <a class="history-link" href="/games/{{ sale.game_id }}">履歴</a>
-                    {% endif %}
-                </td>
-                <td>{{ sale.store_name }}</td>
-                <td class="price">&yen;{{ "{:,.0f}".format(sale.regular_price) }}</td>
-                <td class="price">&yen;{{ "{:,.0f}".format(sale.sale_price) }}</td>
-                <td class="discount">{{ sale.discount_pct }}%</td>
-            </tr>
+        <div class="date-badge">
+            <span class="date-dot"></span>
+            {{ today }} 更新
+        </div>
+
+        <div class="filters">
+            <a href="/?type=game&page=1" class="filter-btn {% if current_type == 'game' %}active{% endif %}">ゲーム本編</a>
+            <a href="/?type=dlc&page=1" class="filter-btn {% if current_type == 'dlc' %}active{% endif %}">DLC</a>
+            <a href="/?type=soundtrack&page=1" class="filter-btn {% if current_type == 'soundtrack' %}active{% endif %}">サウンドトラック</a>
+            <a href="/?type=all&page=1" class="filter-btn {% if current_type == 'all' %}active{% endif %}">すべて</a>
+        </div>
+
+        {% if sales %}
+        <div class="cards">
+            {% for item in sales %}
+            <div class="card">
+                <div class="discount-badge">-{{ item.discount_pct | int }}%</div>
+                {% if item.image_url %}
+                <img class="card-cover" src="{{ item.image_url }}" alt="{{ item.game_title }}" loading="lazy"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="card-cover-placeholder" style="display:none">No Image</div>
+                {% else %}
+                <div class="card-cover-placeholder">No Image</div>
+                {% endif %}
+                <div class="card-body">
+                    <div class="card-top">
+                        <span class="card-title">{{ item.game_title }}</span>
+                        {% if item.game_type == 'game' %}
+                        <span class="card-tag tag-game">本編</span>
+                        {% elif item.game_type == 'dlc' %}
+                        <span class="card-tag tag-dlc">DLC</span>
+                        {% else %}
+                        <span class="card-tag tag-ost">OST</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <div class="prices">
+                            <span class="price-sale">&yen;{{ "{:,}".format(item.sale_price | int) }}</span>
+                            <span class="price-regular">&yen;{{ "{:,}".format(item.regular_price | int) }}</span>
+                        </div>
+                        <span class="store-name">{{ item.store_name }}</span>
+                    </div>
+                    <div class="card-links">
+                        {% if item.store_url %}
+                        <a class="btn-store" href="{{ item.store_url }}" target="_blank" rel="noopener">ストアで見る →</a>
+                        {% endif %}
+                        {% if item.game_id %}
+                        <a class="history-link" href="/games/{{ item.game_id }}">価格履歴 →</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
 
-    <div class="pagination">
-        {% if page > 1 %}
-        <a href="/?type={{ current_type }}&page={{ page - 1 }}">前のページ</a>
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="/?type={{ current_type }}&page={{ page - 1 }}" class="page-btn">← 前のページ</a>
+            {% else %}
+            <span class="page-btn disabled">← 前のページ</span>
+            {% endif %}
+            <span class="page-info">{{ page }} / {{ total_pages }} ページ</span>
+            {% if page < total_pages %}
+            <a href="/?type={{ current_type }}&page={{ page + 1 }}" class="page-btn">次のページ →</a>
+            {% else %}
+            <span class="page-btn disabled">次のページ →</span>
+            {% endif %}
+        </div>
         {% else %}
-        <span class="disabled">前のページ</span>
+        <p class="empty">該当するセール情報がありません。</p>
         {% endif %}
-        <span class="page-info">{{ page }} / {{ total_pages }} ページ</span>
-        {% if page < total_pages %}
-        <a href="/?type={{ current_type }}&page={{ page + 1 }}">次のページ</a>
-        {% else %}
-        <span class="disabled">次のページ</span>
-        {% endif %}
-    </div>
-    {% endif %}
+    </main>
 </body>
 </html>

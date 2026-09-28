@@ -1,7 +1,7 @@
 """FastAPI Webアプリ: BigQueryのsalesテーブルから最新日のセール情報を一覧表示する。"""
 
 import os
-from datetime import date
+from datetime import date, datetime
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
@@ -169,6 +169,7 @@ def index(request: Request, type: str = DEFAULT_TYPE, page: int = 1):
             "current_type": type,
             "page": page,
             "total_pages": total_pages,
+            "today": datetime.now().strftime("%Y-%m-%d"),
             "type_filters": TYPE_FILTERS,
         },
     )
