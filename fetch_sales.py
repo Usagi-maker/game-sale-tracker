@@ -11,24 +11,28 @@ from google.cloud import bigquery
 
 DEALS_URL = "https://api.isthereanydeal.com/deals/v2"
 PAGE_LIMIT = 100
-PAGE_COUNT = 2  # 合計 PAGE_LIMIT * PAGE_COUNT = 200件
+TOTAL_DEALS = 400
 OUTPUT_DIR = "output"
 
 
 def fetch_deals(api_key: str) -> list[dict]:
     deals: list[dict] = []
-    for page in range(PAGE_COUNT):
+    for offset in range(0, TOTAL_DEALS, PAGE_LIMIT):
         response = httpx.get(
             DEALS_URL,
             headers={"ITAD-API-Key": api_key},
             params={
                 "country": "JP",
                 "limit": PAGE_LIMIT,
-                "offset": page * PAGE_LIMIT,
+                "offset": offset,
             },
         )
         response.raise_for_status()
-        deals.extend(response.json().get("list", []))
+        items = response.json().get("list", [])
+        if not items:
+            break  # これ以上データがなければ終了
+        deals.extend(items)
+        print(f"offset={offset}: {len(items)}件取得")
     return deals
 
 
