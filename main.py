@@ -13,28 +13,70 @@ load_dotenv()
 PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 DATASET = os.getenv("BIGQUERY_DATASET")
 SALES_TABLE = "sales"
-MAX_ROWS = 50
+PAGE_SIZE = 20
+DEFAULT_TYPE = "game"
+TYPE_FILTERS = {
+    "game": "ゲーム本編",
+    "dlc": "DLC",
+    "soundtrack": "サウンドトラック",
+    "all": "すべて",
+}
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 
-def fetch_latest_sales() -> tuple[list[dict], date | None]:
-    """salesテーブルから最新日付のデータを割引率の高い順に最大MAX_ROWS件取得する。"""
+def fetch_latest_sales(
+    game_type: str = DEFAULT_TYPE, page: int = 1
+) -> tuple[list[dict], date | None, int, int]:
+    """salesテーブルから最新日付のデータをgame_idで重複排除し、割引率の高い順に取得する。
+
+    同じgame_idが複数ストアにある場合はdiscount_pctが最大の1件のみ返す。
+    game_type が "all" 以外の場合は種別で絞り込む。
+    1ページPAGE_SIZE件で、(sales, latest_date, 実際のページ番号, 総ページ数) を返す。
+    範囲外のページが指定された場合は最終ページに丸める。
+    """
     client = bigquery.Client(project=PROJECT_ID)
     table_ref = f"{PROJECT_ID}.{DATASET}.{SALES_TABLE}"
 
+    type_filter = "" if game_type == "all" else "AND game_type = @game_type"
     query = f"""
-        SELECT game_id, game_title, store_name, regular_price, sale_price, discount_pct, fetched_at
-        FROM `{table_ref}`
-        WHERE DATE(fetched_at) = (SELECT MAX(DATE(fetched_at)) FROM `{table_ref}`)
+        WITH ranked AS (
+            SELECT *,
+                   ROW_NUMBER() OVER (PARTITION BY game_id ORDER BY discount_pct DESC) AS rn
+            FROM `{table_ref}`
+            WHERE DATE(fetched_at) = (SELECT MAX(DATE(fetched_at)) FROM `{table_ref}`)
+              AND game_id IS NOT NULL
+        )
+        SELECT game_id, game_title, store_name, regular_price, sale_price, discount_pct,
+               game_type, image_url, store_url, fetched_at,
+               COUNT(*) OVER () AS total_count
+        FROM ranked
+        WHERE rn = 1
+          {type_filter}
         ORDER BY discount_pct DESC
-        LIMIT {MAX_ROWS}
+        LIMIT {PAGE_SIZE}
+        OFFSET @offset
     """
-    rows = list(client.query(query).result())
+    query_parameters = [
+        bigquery.ScalarQueryParameter("offset", "INT64", (page - 1) * PAGE_SIZE)
+    ]
+    if game_type != "all":
+        query_parameters.append(
+            bigquery.ScalarQueryParameter("game_type", "STRING", game_type)
+        )
+    job_config = bigquery.QueryJobConfig(query_parameters=query_parameters)
+    rows = list(client.query(query, job_config=job_config).result())
 
     if not rows:
-        return [], None
+        if page > 1:
+            # 範囲外のページ: 総件数が分からないので1ページ目から取り直して最終ページに丸める
+            first = fetch_latest_sales(game_type, 1)
+            total_pages = first[3]
+            return fetch_latest_sales(game_type, total_pages) if total_pages > 1 else first
+        return [], None, 1, 1
+
+    total_pages = max(1, -(-rows[0]["total_count"] // PAGE_SIZE))
 
     latest_date = rows[0]["fetched_at"].date()
     sales = [
@@ -45,10 +87,13 @@ def fetch_latest_sales() -> tuple[list[dict], date | None]:
             "regular_price": row["regular_price"],
             "sale_price": row["sale_price"],
             "discount_pct": row["discount_pct"],
+            "game_type": row["game_type"],
+            "image_url": row["image_url"],
+            "store_url": row["store_url"],
         }
         for row in rows
     ]
-    return sales, latest_date
+    return sales, latest_date, page, total_pages
 
 
 def fetch_game_history(game_id: str) -> list[dict]:
@@ -110,14 +155,21 @@ def fetch_store_stats() -> list[dict]:
 
 
 @app.get("/")
-def index(request: Request):
-    sales, latest_date = fetch_latest_sales()
+def index(request: Request, type: str = DEFAULT_TYPE, page: int = 1):
+    if type not in TYPE_FILTERS:
+        type = DEFAULT_TYPE
+    page = max(1, page)
+    sales, latest_date, page, total_pages = fetch_latest_sales(type, page)
     return templates.TemplateResponse(
         request,
         "index.html",
         {
             "sales": sales,
             "latest_date": latest_date,
+            "current_type": type,
+            "page": page,
+            "total_pages": total_pages,
+            "type_filters": TYPE_FILTERS,
         },
     )
 

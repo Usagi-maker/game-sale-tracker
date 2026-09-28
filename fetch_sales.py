@@ -10,21 +10,26 @@ from dotenv import load_dotenv
 from google.cloud import bigquery
 
 DEALS_URL = "https://api.isthereanydeal.com/deals/v2"
-MAX_DEALS = 100
+PAGE_LIMIT = 100
+PAGE_COUNT = 2  # 合計 PAGE_LIMIT * PAGE_COUNT = 200件
 OUTPUT_DIR = "output"
 
 
 def fetch_deals(api_key: str) -> list[dict]:
-    response = httpx.get(
-        DEALS_URL,
-        headers={"ITAD-API-Key": api_key},
-        params={
-            "country": "JP",
-            "limit": MAX_DEALS,
-        },
-    )
-    response.raise_for_status()
-    return response.json().get("list", [])
+    deals: list[dict] = []
+    for page in range(PAGE_COUNT):
+        response = httpx.get(
+            DEALS_URL,
+            headers={"ITAD-API-Key": api_key},
+            params={
+                "country": "JP",
+                "limit": PAGE_LIMIT,
+                "offset": page * PAGE_LIMIT,
+            },
+        )
+        response.raise_for_status()
+        deals.extend(response.json().get("list", []))
+    return deals
 
 
 def extract_image_url(item: dict) -> str | None:
