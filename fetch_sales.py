@@ -27,6 +27,14 @@ def fetch_deals(api_key: str) -> list[dict]:
     return response.json().get("list", [])
 
 
+def extract_image_url(item: dict) -> str | None:
+    assets = item.get("assets") or {}
+    for key in ("banner400", "banner300", "banner145", "boxart"):
+        if assets.get(key):
+            return assets[key]
+    return None
+
+
 def build_rows(deals: list[dict], fetched_at: str) -> list[dict]:
     rows = []
     for item in deals:
@@ -46,6 +54,9 @@ def build_rows(deals: list[dict], fetched_at: str) -> list[dict]:
                 "sale_price": sale_price,
                 "cut": deal.get("cut"),
                 "fetched_at": fetched_at,
+                "game_type": item.get("type") or None,
+                "image_url": extract_image_url(item),
+                "store_url": deal.get("url") or None,
             }
         )
     return rows
@@ -58,7 +69,8 @@ def write_csv(rows: list[dict]) -> str:
     with open(filename, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ["ゲームID", "ゲーム名", "ストア名", "通常価格", "セール価格", "割引率(%)", "取得日時"]
+            ["ゲームID", "ゲーム名", "ストア名", "通常価格", "セール価格", "割引率(%)", "取得日時",
+             "種別", "画像URL", "ストアURL"]
         )
         for row in rows:
             writer.writerow(
@@ -70,6 +82,9 @@ def write_csv(rows: list[dict]) -> str:
                     row["sale_price"],
                     row["cut"],
                     row["fetched_at"],
+                    row["game_type"],
+                    row["image_url"],
+                    row["store_url"],
                 ]
             )
 
@@ -89,6 +104,9 @@ def write_bigquery(rows: list[dict], project_id: str, dataset: str, table: str) 
             "sale_price": row["sale_price"],
             "discount_pct": row["cut"],
             "fetched_at": row["fetched_at"],
+            "game_type": row["game_type"],
+            "image_url": row["image_url"],
+            "store_url": row["store_url"],
         }
         for row in rows
     ]
