@@ -147,6 +147,30 @@
             color: var(--text);
         }
 
+        .sort-btns {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .sort-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 5px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .sort-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+        .sort-btn.active {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
         .cards {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -335,10 +359,19 @@
         </div>
 
         <div class="filters">
-            <a href="/?type=game&page=1" class="filter-btn {% if current_type == 'game' %}active{% endif %}">ゲーム本編</a>
-            <a href="/?type=dlc&page=1" class="filter-btn {% if current_type == 'dlc' %}active{% endif %}">DLC</a>
-            <a href="/?type=soundtrack&page=1" class="filter-btn {% if current_type == 'soundtrack' %}active{% endif %}">サウンドトラック</a>
-            <a href="/?type=all&page=1" class="filter-btn {% if current_type == 'all' %}active{% endif %}">すべて</a>
+            <a href="/?type=game&sort={{ current_sort }}&page=1" class="filter-btn {% if current_type == 'game' %}active{% endif %}">ゲーム本編</a>
+            <a href="/?type=dlc&sort={{ current_sort }}&page=1" class="filter-btn {% if current_type == 'dlc' %}active{% endif %}">DLC</a>
+            <a href="/?type=soundtrack&sort={{ current_sort }}&page=1" class="filter-btn {% if current_type == 'soundtrack' %}active{% endif %}">サウンドトラック</a>
+            <a href="/?type=all&sort={{ current_sort }}&page=1" class="filter-btn {% if current_type == 'all' %}active{% endif %}">すべて</a>
+        </div>
+
+        <div class="sort-btns">
+            <a href="/?type={{ current_type }}&sort=popular&page=1"
+               class="sort-btn {% if current_sort == 'popular' %}active{% endif %}">🔥 人気順</a>
+            <a href="/?type={{ current_type }}&sort=discount&page=1"
+               class="sort-btn {% if current_sort == 'discount' %}active{% endif %}">💸 割引率順</a>
+            <a href="/?type={{ current_type }}&sort=new&page=1"
+               class="sort-btn {% if current_sort == 'new' %}active{% endif %}">🆕 新着順</a>
         </div>
 
         {% if sales %}
@@ -386,13 +419,13 @@
 
         <div class="pagination">
             {% if page > 1 %}
-            <a href="/?type={{ current_type }}&page={{ page - 1 }}" class="page-btn">← 前のページ</a>
+            <a href="/?type={{ current_type }}&sort={{ current_sort }}&page={{ page - 1 }}" class="page-btn">← 前のページ</a>
             {% else %}
             <span class="page-btn disabled">← 前のページ</span>
             {% endif %}
             <span class="page-info">{{ page }} / {{ total_pages }} ページ</span>
             {% if page < total_pages %}
-            <a href="/?type={{ current_type }}&page={{ page + 1 }}" class="page-btn">次のページ →</a>
+            <a href="/?type={{ current_type }}&sort={{ current_sort }}&page={{ page + 1 }}" class="page-btn">次のページ →</a>
             {% else %}
             <span class="page-btn disabled">次のページ →</span>
             {% endif %}

@@ -4,7 +4,7 @@ import os
 from datetime import date, datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
 from google.cloud import bigquery
 
@@ -13,7 +13,15 @@ load_dotenv()
 PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 DATASET = os.getenv("BIGQUERY_DATASET")
 SALES_TABLE = "sales"
+STEAM_STATS_TABLE = "steam_stats"
 PAGE_SIZE = 20
+DEFAULT_SORT = "popular"
+# 同値のときの並びを安定させるため、第2キーに割引率とgame_idを付ける
+SORT_ORDERS = {
+    "popular": "COALESCE(st.review_count, 0) DESC, s.discount_pct DESC, s.game_id",
+    "discount": "s.discount_pct DESC, s.game_id",
+    "new": "s.fetched_at DESC, s.discount_pct DESC, s.game_id",
+}
 DEFAULT_TYPE = "game"
 TYPE_FILTERS = {
     "game": "ゲーム本編",
@@ -27,19 +35,22 @@ templates = Jinja2Templates(directory="templates")
 
 
 def fetch_latest_sales(
-    game_type: str = DEFAULT_TYPE, page: int = 1
+    game_type: str = DEFAULT_TYPE, page: int = 1, sort: str = DEFAULT_SORT
 ) -> tuple[list[dict], date | None, int, int]:
-    """salesテーブルから最新日付のデータをgame_idで重複排除し、割引率の高い順に取得する。
+    """salesテーブルから最新日付のデータをgame_idで重複排除し、sortの順に取得する。
 
     同じgame_idが複数ストアにある場合はdiscount_pctが最大の1件のみ返す。
     game_type が "all" 以外の場合は種別で絞り込む。
+    steam_statsの最新レコードをLEFT JOINし、sort="popular"ではレビュー数の多い順に並べる。
     1ページPAGE_SIZE件で、(sales, latest_date, 実際のページ番号, 総ページ数) を返す。
     範囲外のページが指定された場合は最終ページに丸める。
     """
     client = bigquery.Client(project=PROJECT_ID)
     table_ref = f"{PROJECT_ID}.{DATASET}.{SALES_TABLE}"
 
-    type_filter = "" if game_type == "all" else "AND game_type = @game_type"
+    type_filter = "" if game_type == "all" else "AND s.game_type = @game_type"
+    steam_table_ref = f"{PROJECT_ID}.{DATASET}.{STEAM_STATS_TABLE}"
+    order_by = SORT_ORDERS.get(sort, SORT_ORDERS[DEFAULT_SORT])
     query = f"""
         WITH ranked AS (
             SELECT *,
@@ -48,13 +59,19 @@ def fetch_latest_sales(
             WHERE DATE(fetched_at) = (SELECT MAX(DATE(fetched_at)) FROM `{table_ref}`)
               AND game_id IS NOT NULL
         )
-        SELECT game_id, game_title, store_name, regular_price, sale_price, discount_pct,
-               game_type, image_url, store_url, fetched_at,
+        SELECT s.game_id, s.game_title, s.store_name, s.regular_price, s.sale_price,
+               s.discount_pct, s.game_type, s.image_url, s.store_url, s.fetched_at,
                COUNT(*) OVER () AS total_count
-        FROM ranked
-        WHERE rn = 1
+        FROM ranked AS s
+        LEFT JOIN (
+            SELECT game_id, review_count, player_count, review_score
+            FROM `{steam_table_ref}`
+            WHERE fetched_at = (SELECT MAX(fetched_at) FROM `{steam_table_ref}`)
+        ) AS st
+          ON s.game_id = st.game_id
+        WHERE s.rn = 1
           {type_filter}
-        ORDER BY discount_pct DESC
+        ORDER BY {order_by}
         LIMIT {PAGE_SIZE}
         OFFSET @offset
     """
@@ -71,9 +88,9 @@ def fetch_latest_sales(
     if not rows:
         if page > 1:
             # 範囲外のページ: 総件数が分からないので1ページ目から取り直して最終ページに丸める
-            first = fetch_latest_sales(game_type, 1)
+            first = fetch_latest_sales(game_type, 1, sort)
             total_pages = first[3]
-            return fetch_latest_sales(game_type, total_pages) if total_pages > 1 else first
+            return fetch_latest_sales(game_type, total_pages, sort) if total_pages > 1 else first
         return [], None, 1, 1
 
     total_pages = max(1, -(-rows[0]["total_count"] // PAGE_SIZE))
@@ -155,11 +172,18 @@ def fetch_store_stats() -> list[dict]:
 
 
 @app.get("/")
-def index(request: Request, type: str = DEFAULT_TYPE, page: int = 1):
+def index(
+    request: Request,
+    type: str = DEFAULT_TYPE,
+    page: int = 1,
+    sort: str = Query(default=DEFAULT_SORT),
+):
     if type not in TYPE_FILTERS:
         type = DEFAULT_TYPE
+    if sort not in SORT_ORDERS:
+        sort = DEFAULT_SORT
     page = max(1, page)
-    sales, latest_date, page, total_pages = fetch_latest_sales(type, page)
+    sales, latest_date, page, total_pages = fetch_latest_sales(type, page, sort)
     return templates.TemplateResponse(
         request,
         "index.html",
@@ -167,6 +191,7 @@ def index(request: Request, type: str = DEFAULT_TYPE, page: int = 1):
             "sales": sales,
             "latest_date": latest_date,
             "current_type": type,
+            "current_sort": sort,
             "page": page,
             "total_pages": total_pages,
             "today": datetime.now().strftime("%Y-%m-%d"),

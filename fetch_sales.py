@@ -18,14 +18,22 @@ OUTPUT_DIR = "output"
 def fetch_deals(api_key: str) -> list[dict]:
     deals: list[dict] = []
     for offset in range(0, TOTAL_DEALS, PAGE_LIMIT):
-        response = httpx.get(
+        # filterはPOST本文のJSONでのみ有効（GETのクエリに生JSONを入れても無視される）。
+        # パラメータはクエリと本文を併用できないため、countryなども本文に入れる。
+        response = httpx.post(
             DEALS_URL,
             headers={"ITAD-API-Key": api_key},
-            params={
+            json={
                 "country": "JP",
                 "limit": PAGE_LIMIT,
                 "offset": offset,
+                "filter": {
+                    "type": [1],  # 1 = Game（DLC・パッケージ等を除外）
+                    "steamCount": {"min": 500, "max": None},  # Steamレビュー500件以上
+                    "steamPerc": {"min": 70, "max": 100},  # 好評率70%以上（maxにNoneは不可）
+                },
             },
+            timeout=60,
         )
         response.raise_for_status()
         items = response.json().get("list", [])
